@@ -18,10 +18,10 @@ import (
 
 // Node *
 type Node struct {
-	ID string
+	ID      string
 	country string
-	region string
-	city string
+	region  string
+	city    string
 }
 
 func main() {
@@ -35,10 +35,10 @@ func main() {
 	//Close the listener when application closes
 	defer l.Close()
 
-	nodesIds := make([]string, 1)
-	nodesCou := make(map[string]string)
-	nodesReg := make(map[string]string)
-	nodesCit := make(map[string]string)
+	var nodesIds []string
+	nodesCountries := make(map[string]string)
+	nodesRegions := make(map[string]string)
+	nodesCities := make(map[string]string)
 
 	fmt.Println("Listening on :9000")
 	for {
@@ -48,35 +48,225 @@ func main() {
 			os.Exit(1)
 		}
 
-		node := NewNode(conn,nodesIds)
+		node := NewNode(conn, nodesIds)
 
-		//nodeID := calculateID(nodesIds)
-		io.WriteString(conn, fmt.Sprintf("Your node id is: %s", node.ID))
-
-		//country, region, city := findLoc()
-		nodesCou[node.ID] = node.country
-		nodesReg[node.ID] = node.region
-		nodesCit[node.ID] = node.city
-
-		fmt.Println(nodesCou)
-		fmt.Println(nodesReg)
-		fmt.Println(nodesCit)
-
+		io.WriteString(conn, fmt.Sprintf("Your node ID is: %s", node.ID))
 		io.WriteString(conn, fmt.Sprintf("\nCountry: %s\nRegion: %s\nCity: %s", node.country, node.region, node.city))
+
+		nodesIds = addID(node.ID,nodesIds)
+		nodesCountries[node.ID] = node.country
+		nodesRegions[node.ID] = node.region
+		nodesCities[node.ID] = node.city
+
+		//fmt.Println(nodesCountries)
+		//fmt.Println(nodesRegions)
+		//fmt.Println(nodesCities)
+		/*
+			io.WriteString(conn, fmt.Sprintln(nodesIds))
+			io.WriteString(conn, fmt.Sprintln(nodesCountries))
+			io.WriteString(conn, fmt.Sprintln(nodesRegions))
+			io.WriteString(conn, fmt.Sprintln(nodesCities))
+		*/
+		go recommend(conn, node.ID, nodesIds, nodesCountries, nodesRegions, nodesCities)
+
 	}
 }
 
+func recommend(conn net.Conn, ID string, IDS []string, countries map[string]string, regions map[string]string, cities map[string]string) {
+	
+	/*
+	io.WriteString(conn, fmt.Sprintln(IDS))
+	io.WriteString(conn, fmt.Sprintln(countries))
+	io.WriteString(conn, fmt.Sprintln(regions))
+	io.WriteString(conn, fmt.Sprintln(cities))
+	*/
+
+	if len(IDS) > 5 {
+		
+		for _, opp := range IDS {
+			
+			if cities[ID] == cities[opp] && ID != opp {
+				io.WriteString(conn, fmt.Sprintf("\nYou are soo close to %s!", opp))
+				continue
+			} else if regions[ID] == regions[opp] && ID != opp {
+				io.WriteString(conn, fmt.Sprintf("\nYou are near to %s.", opp))
+				continue
+			} else if countries[ID] == countries[opp] && ID != opp {
+				io.WriteString(conn, fmt.Sprintf("\nAt least you are in the same country with %s.", opp))
+				continue
+			}
+		}
+	}
+}
 
 // NewNode *
-func NewNode(conn net.Conn,IDS []string) *Node {
+func NewNode(conn net.Conn, IDS []string) *Node {
 	node := &Node{
-		ID: calculateID(IDS),
+		ID:      calculateID(IDS),
 		country: findCou(),
-		region: findReg(),
-		city: findCity(),
+		region:  findReg(),
+		city:    findCity(),
 	}
 
 	return node
+}
+
+func addID(ID string, IDS []string) []string {
+	IDS = append(IDS, ID)
+	return IDS
+}
+
+func findCou() string {
+	response, err := http.Get("https://mylocation.org/")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer response.Body.Close()
+
+	dataInBytes, err := ioutil.ReadAll(response.Body)
+	pageContent := string(dataInBytes)
+
+	textStartIndex := strings.Index(pageContent, "<table>")
+	if textStartIndex == -1 {
+		fmt.Println("No text element found")
+		os.Exit(0)
+	}
+
+	textStartIndex += 7
+
+	textEndIndex := strings.Index(pageContent, "</table>")
+	if textEndIndex == -1 {
+		fmt.Println("No closing tag for text found.")
+		os.Exit(0)
+	}
+
+	pagetext := []byte(pageContent[textStartIndex:textEndIndex])
+	s := strings.Split(string(pagetext), "<td>")
+
+	var country = "Unknown"
+
+	for i := 0; i < len(s); i++ {
+
+		if strings.Contains(s[i], "Country") {
+
+			c := strings.Split(string(s[i+1]), "</td>")
+			country = c[0]
+			break
+		}
+
+	}
+
+	return country
+}
+
+func findReg() string {
+	response, err := http.Get("https://mylocation.org/")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer response.Body.Close()
+
+	dataInBytes, err := ioutil.ReadAll(response.Body)
+	pageContent := string(dataInBytes)
+
+	textStartIndex := strings.Index(pageContent, "<table>")
+	if textStartIndex == -1 {
+		fmt.Println("No text element found")
+		os.Exit(0)
+	}
+
+	textStartIndex += 7
+
+	textEndIndex := strings.Index(pageContent, "</table>")
+	if textEndIndex == -1 {
+		fmt.Println("No closing tag for text found.")
+		os.Exit(0)
+	}
+
+	pagetext := []byte(pageContent[textStartIndex:textEndIndex])
+	s := strings.Split(string(pagetext), "<td>")
+
+	var region = "Unknown"
+
+	for i := 0; i < len(s); i++ {
+
+		if strings.Contains(s[i], "Region") {
+
+			c := strings.Split(string(s[i+1]), "</td>")
+			region = c[0]
+			break
+		}
+
+	}
+
+	return region
+}
+
+func findCity() string {
+	response, err := http.Get("https://mylocation.org/")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer response.Body.Close()
+
+	dataInBytes, err := ioutil.ReadAll(response.Body)
+	pageContent := string(dataInBytes)
+
+	textStartIndex := strings.Index(pageContent, "<table>")
+	if textStartIndex == -1 {
+		fmt.Println("No text element found")
+		os.Exit(0)
+	}
+
+	textStartIndex += 7
+
+	textEndIndex := strings.Index(pageContent, "</table>")
+	if textEndIndex == -1 {
+		fmt.Println("No closing tag for text found.")
+		os.Exit(0)
+	}
+
+	pagetext := []byte(pageContent[textStartIndex:textEndIndex])
+	s := strings.Split(string(pagetext), "<td>")
+
+	var city = "Unknown"
+
+	for i := 0; i < len(s); i++ {
+
+		if strings.Contains(s[i], "City") {
+
+			c := strings.Split(string(s[i+1]), "</td>")
+			city = c[0]
+			break
+		}
+
+	}
+
+	return city
+}
+
+func calculateID(IDS []string) string {
+
+	nodeID := shortuuid.New()
+	if !isIDvalid(nodeID, IDS) {
+		go calculateID(IDS)
+	}
+	return nodeID
+}
+
+func isIDvalid(ID string, IDS []string) bool {
+	i := 0
+	for _, id := range IDS {
+		if ID != id {
+			if i == len(IDS)-1 {
+				return true
+			}
+			continue
+		}
+		i++
+		break
+	}
+	return false
 }
 
 /*
@@ -151,149 +341,3 @@ func findLoc() (string, string, string) {
 	return country, region, city
 }
 */
-
-func findCou() string {
-	response, err := http.Get("https://mylocation.org/")
-	if err != nil { log.Fatal(err) }
-	defer response.Body.Close()
-	
-	dataInBytes, err := ioutil.ReadAll(response.Body)
-	pageContent := string(dataInBytes)
-	
-	textStartIndex := strings.Index(pageContent, "<table>")
-	if textStartIndex == -1 {
-		fmt.Println("No text element found")
-		os.Exit(0)
-	}
-	
-	textStartIndex += 7
-	
-	textEndIndex := strings.Index(pageContent, "</table>")
-	if textEndIndex == -1 {
-		fmt.Println("No closing tag for text found.")
-		os.Exit(0)
-	}
-	
-	pagetext := []byte(pageContent[textStartIndex:textEndIndex])
-	s := strings.Split(string(pagetext), "<td>")
-
-	var country = "Unknown"
-
-	for i := 0; i < len(s); i++ {
-
-		if strings.Contains(s[i], "Country") {
-
-			c := strings.Split(string(s[i+1]), "</td>")
-			country = c[0]
-			break
-		}
-
-	}
-
-	return country
-}
-
-func findReg() string {
-	response, err := http.Get("https://mylocation.org/")
-	if err != nil { log.Fatal(err) }
-	defer response.Body.Close()
-	
-	dataInBytes, err := ioutil.ReadAll(response.Body)
-	pageContent := string(dataInBytes)
-	
-	textStartIndex := strings.Index(pageContent, "<table>")
-	if textStartIndex == -1 {
-		fmt.Println("No text element found")
-		os.Exit(0)
-	}
-	
-	textStartIndex += 7
-	
-	textEndIndex := strings.Index(pageContent, "</table>")
-	if textEndIndex == -1 {
-		fmt.Println("No closing tag for text found.")
-		os.Exit(0)
-	}
-	
-	pagetext := []byte(pageContent[textStartIndex:textEndIndex])
-	s := strings.Split(string(pagetext), "<td>")
-
-	var region = "Unknown"
-
-	for i := 0; i < len(s); i++ {
-
-		if strings.Contains(s[i], "Region") {
-
-			c := strings.Split(string(s[i+1]), "</td>")
-			region = c[0]
-			break
-		}
-
-	}
-
-	return region
-}
-
-func findCity() string {
-	response, err := http.Get("https://mylocation.org/")
-	if err != nil { log.Fatal(err) }
-	defer response.Body.Close()
-	
-	dataInBytes, err := ioutil.ReadAll(response.Body)
-	pageContent := string(dataInBytes)
-	
-	textStartIndex := strings.Index(pageContent, "<table>")
-	if textStartIndex == -1 {
-		fmt.Println("No text element found")
-		os.Exit(0)
-	}
-	
-	textStartIndex += 7
-	
-	textEndIndex := strings.Index(pageContent, "</table>")
-	if textEndIndex == -1 {
-		fmt.Println("No closing tag for text found.")
-		os.Exit(0)
-	}
-	
-	pagetext := []byte(pageContent[textStartIndex:textEndIndex])
-	s := strings.Split(string(pagetext), "<td>")
-
-	var city = "Unknown"
-
-	for i := 0; i < len(s); i++ {
-
-		if strings.Contains(s[i], "City") {
-
-			c := strings.Split(string(s[i+1]), "</td>")
-			city = c[0]
-			break
-		}
-
-	}
-
-	return city
-}
-
-func calculateID(IDS []string) string {
-
-	nodeID := shortuuid.New()
-	if !isIDvalid(nodeID, IDS) {
-		go calculateID(IDS)
-	}
-	return nodeID
-}
-
-func isIDvalid(id string, arr []string) bool {
-
-	for i := 0; i < len(arr); i++ {
-		if id != arr[i] {
-			if i == len(arr)-1 {
-				return true
-			}
-			continue
-		}
-		break
-	}
-	return false
-}

@@ -1,7 +1,7 @@
 /* P2P
-go run main.go -l 10000 -secio
-go run main.go -l 10001 -d <given address in the instructions> -secio
-go run main.go -l 10002 -d <given address in the instructions> -secio
+go run main_p2p.go -l 10000 -secio
+go run main_p2p.go -l 10001 -d <given address in the instructions> -secio
+go run main_p2p.go -l 10002 -d <given address in the instructions> -secio
 */
 
 package main
@@ -27,6 +27,10 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	golog "github.com/ipfs/go-log"
 	libp2p "github.com/libp2p/go-libp2p"
+	"github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p-core/host"
+	"github.com/libp2p/go-libp2p-core/peer"
+
 	crypto "github.com/libp2p/go-libp2p-crypto"
 	host "github.com/libp2p/go-libp2p-host"
 	net "github.com/libp2p/go-libp2p-net"
@@ -107,16 +111,18 @@ func makeBasicHost(listenPort int, secio bool, randseed int64) (host.Host, error
 
 	// Generate a key pair for this host. We will use it to obtain a valid host ID.
 	priv, _, err := crypto.GenerateKeyPairWithReader(crypto.RSA, 2048, r)
-	if err != nil { return nil, err }
+	if err != nil {
+		return nil, err
+	}
 
 	opts := []libp2p.Option{
 		libp2p.ListenAddrStrings(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", listenPort)),
 		libp2p.Identity(priv),
 	}
 
-//	if !secio {
-//		opts = append(opts, libp2p.NoEncryption())
-//	}
+	//	if !secio {
+	//		opts = append(opts, libp2p.NoEncryption())
+	//	}
 
 	basicHost, err := libp2p.New(context.Background(), opts...)
 	if err != nil {
@@ -157,20 +163,28 @@ func readData(rw *bufio.ReadWriter) {
 
 	for {
 		str, err := rw.ReadString('\n')
-		if err != nil { log.Fatal(err) }
+		if err != nil {
+			log.Fatal(err)
+		}
 
-		if str == "" { return }
+		if str == "" {
+			return
+		}
 
 		if str != "\n" {
 
 			chain := make([]Block, 0)
-			if err := json.Unmarshal([]byte(str), &chain); err != nil { log.Fatal(err) }
+			if err := json.Unmarshal([]byte(str), &chain); err != nil {
+				log.Fatal(err)
+			}
 
 			mutex.Lock()
 			if len(chain) > len(Blockchain) {
 				Blockchain = chain
 				bytes, err := json.MarshalIndent(Blockchain, "", "  ")
-				if err != nil { log.Fatal(err) }
+				if err != nil {
+					log.Fatal(err)
+				}
 
 				// Green console color: 	\x1b[32m
 				// Reset console color: 	\x1b[0m
@@ -189,7 +203,9 @@ func writeData(rw *bufio.ReadWriter) {
 
 			mutex.Lock()
 			bytes, err := json.Marshal(Blockchain)
-			if err != nil { log.Println(err) }
+			if err != nil {
+				log.Println(err)
+			}
 			mutex.Unlock()
 
 			mutex.Lock()
@@ -205,11 +221,15 @@ func writeData(rw *bufio.ReadWriter) {
 	for {
 		fmt.Print("> ")
 		sendData, err := stdReader.ReadString('\n')
-		if err != nil { log.Fatal(err) }
+		if err != nil {
+			log.Fatal(err)
+		}
 
 		sendData = strings.Replace(sendData, "\n", "", -1)
 		bpm, err := strconv.Atoi(sendData)
-		if err != nil { log.Fatal(err) }
+		if err != nil {
+			log.Fatal(err)
+		}
 
 		newBlock := generateBlock(Blockchain[len(Blockchain)-1], bpm)
 
@@ -220,7 +240,9 @@ func writeData(rw *bufio.ReadWriter) {
 		}
 
 		bytes, err := json.Marshal(Blockchain)
-		if err != nil { log.Println(err) }
+		if err != nil {
+			log.Println(err)
+		}
 
 		spew.Dump(Blockchain)
 
@@ -231,7 +253,6 @@ func writeData(rw *bufio.ReadWriter) {
 	}
 
 }
-
 
 func main() {
 	t := time.Now()
@@ -250,11 +271,15 @@ func main() {
 	seed := flag.Int64("seed", 0, "set random seed for id generation")
 	flag.Parse()
 
-	if *listenF == 0 { log.Fatal("Please provide a port to bind on with -l") }
+	if *listenF == 0 {
+		log.Fatal("Please provide a port to bind on with -l")
+	}
 
 	// Make a host that listens on the given multiaddress
 	ha, err := makeBasicHost(*listenF, *secio, *seed)
-	if err != nil { log.Fatal(err) }
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	if *target == "" {
 		log.Println("listening for connections")
@@ -269,13 +294,19 @@ func main() {
 
 		// The following code extracts target's peer ID from the given multiaddress
 		ipfsaddr, err := ma.NewMultiaddr(*target)
-		if err != nil { log.Fatalln(err) }
+		if err != nil {
+			log.Fatalln(err)
+		}
 
 		pid, err := ipfsaddr.ValueForProtocol(ma.P_IPFS)
-		if err != nil { log.Fatalln(err) }
+		if err != nil {
+			log.Fatalln(err)
+		}
 
 		peerid, err := peer.IDB58Decode(pid)
-		if err != nil { log.Fatalln(err) }
+		if err != nil {
+			log.Fatalln(err)
+		}
 
 		// Decapsulate the /ipfs/<peerID> part
 		// from the target /ip4/<a.b.c.d>/ipfs/<peer> becomes /ip4/<a.b.c.d>
@@ -292,7 +323,9 @@ func main() {
 		// it should be handled on host A by the handler we set above
 		// because we use the same /p2p/1.0.0 protocol
 		s, err := ha.NewStream(context.Background(), peerid, "/p2p/1.0.0")
-		if err != nil { log.Fatalln(err) }
+		if err != nil {
+			log.Fatalln(err)
+		}
 
 		// Create a buffered stream so that read and writes are non blocking.
 		rw := bufio.NewReadWriter(bufio.NewReader(s), bufio.NewWriter(s))
