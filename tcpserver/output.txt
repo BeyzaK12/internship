@@ -1,0 +1,51 @@
+TERMINAL -1-
+beyza@beyzak12:~/go/internship/tcpserver$ go run tcpserver.go
+Listening on :9000
+
+
+TERMINAL -2-
+beyza@beyzak12:~/go$ nc localhost 9000
+Your node ID is: DaPyRPgYSbEDrd8LZm7anb
+Country: Turkey
+Region: Mugla
+City:
+
+TERMINAL -3-
+beyza@beyzak12:~/go$ nc localhost 9000
+Your node ID is: fMMBL5Zsz8qNFB6JoNijCW
+Country: Turkey
+Region: Mugla
+City:
+
+TERMINAL -4-
+beyza@beyzak12:~/go$ nc localhost 9000
+Your node ID is: cAW6b5p4SWDkXsiajd6G2Y
+Country: Turkey
+Region: Mugla
+City:
+
+TERMINAL -5-
+beyza@beyzak12:~/go$ nc localhost 9000
+Your node ID is: 88pzFENjwA3c6xqDUHqDNY
+Country: Turkey
+Region: Mugla
+City:
+
+TERMINAL -6-
+beyza@beyzak12:~/go$ nc localhost 9000
+Your node ID is: B9LsCPNHe3psNw84fcCjqn
+Country: Turkey
+Region: Mugla
+City:
+
+TERMINAL -7-
+beyza@beyzak12:~/go$ nc localhost 9000
+Your node ID is: rAiSkhcWdVBt65QCf5kBcT
+Country: Turkey
+Region: Mugla
+City:
+You are soo close to DaPyRPgYSbEDrd8LZm7anb!
+You are soo close to fMMBL5Zsz8qNFB6JoNijCW!
+You are soo close to cAW6b5p4SWDkXsiajd6G2Y!
+You are soo close to 88pzFENjwA3c6xqDUHqDNY!
+You are soo close to B9LsCPNHe3psNw84fcCjqn!
