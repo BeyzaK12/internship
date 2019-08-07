@@ -1,7 +1,7 @@
 /* P2P
-go run main_p2p.go -l 10000 -secio
-go run main_p2p.go -l 10001 -d <given address in the instructions> -secio
-go run main_p2p.go -l 10002 -d <given address in the instructions> -secio
+go run main.go -l 10000 -secio
+go run main.go -l 10001 -d <given address in the instructions> -secio
+go run main.go -l 10002 -d <given address in the instructions> -secio
 */
 
 package main
@@ -27,10 +27,6 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	golog "github.com/ipfs/go-log"
 	libp2p "github.com/libp2p/go-libp2p"
-	"github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/libp2p/go-libp2p-core/host"
-	"github.com/libp2p/go-libp2p-core/peer"
-
 	crypto "github.com/libp2p/go-libp2p-crypto"
 	host "github.com/libp2p/go-libp2p-host"
 	net "github.com/libp2p/go-libp2p-net"
@@ -159,6 +155,65 @@ func handleStream(s net.Stream) {
 	// stream 's' will stay open until you close it (or the other side closes it).
 }
 
+func writeData(rw *bufio.ReadWriter) {
+
+	go func() {
+		for {
+			time.Sleep(5 * time.Second)
+
+			mutex.Lock()
+			bytes, err := json.Marshal(Blockchain)
+			if err != nil {
+				log.Println(err)
+			}
+			mutex.Unlock()
+
+			mutex.Lock()
+			rw.WriteString(fmt.Sprintf("%s\n", string(bytes)))
+			rw.Flush()
+			mutex.Unlock()
+
+		}
+	}()
+
+	stdReader := bufio.NewReader(os.Stdin)
+
+	for {
+		fmt.Print("\n> ")
+		sendData, err := stdReader.ReadString('\n')
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		sendData = strings.Replace(sendData, "\n", "", -1)
+		bpm, err := strconv.Atoi(sendData)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		newBlock := generateBlock(Blockchain[len(Blockchain)-1], bpm)
+
+		if isBlockValid(newBlock, Blockchain[len(Blockchain)-1]) {
+			mutex.Lock()
+			Blockchain = append(Blockchain, newBlock)
+			mutex.Unlock()
+		}
+
+		bytes, err := json.Marshal(Blockchain)
+		if err != nil {
+			log.Println(err)
+		}
+
+		spew.Dump(Blockchain)
+
+		mutex.Lock()
+		rw.WriteString(fmt.Sprintf("%s\n", string(bytes)))
+		rw.Flush()
+		mutex.Unlock()
+	}
+
+}
+
 func readData(rw *bufio.ReadWriter) {
 
 	for {
@@ -195,65 +250,6 @@ func readData(rw *bufio.ReadWriter) {
 	}
 }
 
-func writeData(rw *bufio.ReadWriter) {
-
-	go func() {
-		for {
-			time.Sleep(5 * time.Second)
-
-			mutex.Lock()
-			bytes, err := json.Marshal(Blockchain)
-			if err != nil {
-				log.Println(err)
-			}
-			mutex.Unlock()
-
-			mutex.Lock()
-			rw.WriteString(fmt.Sprintf("%s\n", string(bytes)))
-			rw.Flush()
-			mutex.Unlock()
-
-		}
-	}()
-
-	stdReader := bufio.NewReader(os.Stdin)
-
-	for {
-		fmt.Print("> ")
-		sendData, err := stdReader.ReadString('\n')
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		sendData = strings.Replace(sendData, "\n", "", -1)
-		bpm, err := strconv.Atoi(sendData)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		newBlock := generateBlock(Blockchain[len(Blockchain)-1], bpm)
-
-		if isBlockValid(newBlock, Blockchain[len(Blockchain)-1]) {
-			mutex.Lock()
-			Blockchain = append(Blockchain, newBlock)
-			mutex.Unlock()
-		}
-
-		bytes, err := json.Marshal(Blockchain)
-		if err != nil {
-			log.Println(err)
-		}
-
-		spew.Dump(Blockchain)
-
-		mutex.Lock()
-		rw.WriteString(fmt.Sprintf("%s\n", string(bytes)))
-		rw.Flush()
-		mutex.Unlock()
-	}
-
-}
-
 func main() {
 	t := time.Now()
 	genesisBlock := Block{}
@@ -279,6 +275,18 @@ func main() {
 	ha, err := makeBasicHost(*listenF, *secio, *seed)
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	stdReader := bufio.NewReader(os.Stdin)
+
+	fmt.Print(">>> ")
+	message, err := stdReader.ReadString('\n')
+	if err != nil {
+		log.Fatal(err)
+	}
+	if message != "hello\n" {
+		fmt.Println("This is not my message!")
+		os.Exit(1)
 	}
 
 	if *target == "" {
