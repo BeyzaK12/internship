@@ -1,0 +1,28 @@
+Eşler Arası (P2P) Nedir?
+------------------------
+Merkezi bir sistemde istemci olduğunuzu ve başka bir istemciden veri elde etmeniz gerektiğini varsayalım.
+Bunun için öncelikle istediğiniz verinin, sahibi tarafından sunucuya ulaşmış olması gerekir ki siz de onu sunucudan alabilin.
+Peki ya sunucuyu ortadan kaldırırsak?
+Merkezi sununcunun ortadan kalktığı ve her istemcinin aynı zamanda sunucu görevi de yaptığı yapıya ise eşler arası ağ diyoruz.
+Böylelikle her istemci isteği veriyi ağdan kolaylıkla alabiliyor.
+Ayrıca merkezi sistemlerdeki sunucuda herhangi bir problem olduğunda tüm ağın riske girmesi gibi bir durum da söz konusu olmuyor.
+
+
+Blok Zinciri Nedir?
+-------------------
+Eşler arası ağın yapısını öğrendik.
+Peki bu ağı kullanarak verileri güvenli bir şekilde saklamak istersek?
+Tam da bunun için "blok zinciri" adında bir yapımız var.
+Bu yapıda şifreli bir veriye "blok", zinciri depolayan istemcilere "eş" ve blokların şifrelerine "özetleme" diyoruz.
+Çok basite indirgeyerek anlatmak gerekirse:
+Sizin de eşlerinden biri olduğunuz, hastaların kalp atışlarını depolayan bir blok zinciri var diyelim.
+Her bir blok; blok numarası, girdi, işlem zamanı, özetleme ve bir önceki bloğun da özetlemesini bünyesinde bulunduruyor.
+Her bloğun özetlemesi; blok numarası, işlem zamanı, girdi ve önceki bloğun özetlemesi birleştirilerek
+SHA-256 kriptografik hash algoritması yardımıyla oluşturuluyor.
+Bu da özetlemelerin çözülmesini imkansız kılıyor.
+Eşlerden biri yeni bir blok eklemek istediğinde diğer eşler bu bloğun üzerinde veya
+varolan önceki bloklarda oynama yapılıp yapılmadığını test ediyor.
+Oynama yapıldığının tespit edilmesi halinde bu blok zincire dahil olmuyor.
+Güvenlik de sağlanmış oluyor.
+Blokların, kendilerinden önceki blokların özetlemelerini de tutması onları birbirine bağlamış oluyor
+ve tüm bu yapı bir zincir gibi birbirine kenetlenmiş bir şekilde ilerliyor.
