@@ -4,6 +4,7 @@
 > go build
 > ./try
 */
+
 package main
 
 import (
@@ -51,6 +52,15 @@ func main() {
 		nodesCountries[node.ID] = node.country
 		nodesRegions[node.ID] = node.region
 		nodesCities[node.ID] = node.city
+
+		fmt.Println(nodesCountries)
+		fmt.Println(nodesRegions)
+		fmt.Println(nodesCities)
+
+		io.WriteString(conn, fmt.Sprintln(nodesIds))
+		io.WriteString(conn, fmt.Sprintln(nodesCountries))
+		io.WriteString(conn, fmt.Sprintln(nodesRegions))
+		io.WriteString(conn, fmt.Sprintln(nodesCities))
 
 		go recommend(conn, node.ID, nodesIds, nodesCountries, nodesRegions, nodesCities)
 
