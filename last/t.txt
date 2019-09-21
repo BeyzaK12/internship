@@ -1,0 +1,7 @@
+OLMASI GEREKEN
+1- Server başlatılır
+2- p2p bağlanabilmek için "hello" yazmalıdır
+3- Server, peerın lokasyonunu, kendi belirlediği ID ile depolar
+4- Servera bağlı tek bir peer varsa (IDlerin tutulduğu listeye bakılarak belirlenebilir) peer Servera chaini yollar
+5- Tek peer yoksa yeni bağlanan peera Server chaini verir
+
